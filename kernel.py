@@ -37,6 +37,10 @@ def setjob(f):
     global job
     job = f
 
+for i in range(2, len(argv)):
+    if argv[i].endswith('.py'):
+        argv[i] = argv[i][:-3]
+
 modules = list(map(importlib.import_module, argv[2:]))
 def stop():
     for module in modules:
