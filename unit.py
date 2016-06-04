@@ -6,6 +6,9 @@
 '''
 
 
+import threading
+from time import sleep
+
 import pygame
 from pygame.locals import *
 
@@ -34,33 +37,36 @@ def transparent(surf):
                 surf.set_at((x, y), (0, 0, 0, 0))
 
 
-class 建筑:
+class 单位:
 
-    name = '建筑'
+    name = '单位'
     events = ['MouseEnter', 'MouseLeave', 'GlobalMouseButtonDown', 'MouseButtonUp']
 
-    def __init__(self, team, position, angle):
-        self.team = team
-        self.x, self.y = position
+    def __init__(self, team, position):
+        self.position = position
         self.x *= 64
         self.y *= 64
-        self.position = (self.x, self.y)
-        self.angle = angle
-        self.img_r = loadimage('images/%s%d_r.png' % (self.name, team))
+        self.team = team
+        self.img_r = loadimage('images/%s_r.png' % self.name)
         transparent(self.img_r)
-        self.img_r = pygame.transform.rotate(self.img_r, angle)
-        self.img_m = loadimage('images/%s%d_m.png' % (self.name, team))
+        self.img_m = loadimage('images/%s_m.png' % self.name)
         transparent(self.img_m)
-        self.img_m = pygame.transform.rotate(self.img_m, angle)
-        self.img_s = loadimage('images/%s%d_s.png' % (self.name, team))
+        self.img_s = loadimage('images/%s_s.png' % self.name)
         transparent(self.img_s)
-        self.img_s = pygame.transform.rotate(self.img_s, angle)
-        self.rect = self.img_r.get_rect()
-        self.radius = max(self.rect.size) // 2
+        self.useimg = self.img_r
+        self.radius = sum(self.img_r.get_size()) // 2
         self._mouseOn = False
         self._selected = False
         self.mouseOn = False
         self.selected = False
+
+    @property
+    def position(self):
+        return (self.x, self.y)
+
+    @position.setter
+    def position(self, value):
+        self.x, self.y = value
 
     @property
     def mouseOn(self):
@@ -85,17 +91,7 @@ class 建筑:
             self.img = self.img_m if self.mouseOn else self.img_r
 
     def draw(self, cameraPos, windowMid, surf):
-        self.cameraPos = cameraPos
-        self.windowMid = windowMid
-        cameraX, cameraY = cameraPos
-        windowMidX, windowMidY = windowMid
-        if abs(self.x - cameraX) > windowMidX + self.radius:
-            return
-        if abs(self.y - cameraY) > windowMidY + self.radius:
-            return
-        self.rect.center = (self.x - cameraX + windowMidX,
-                self.y - cameraY + windowMidY)
-        surf.blit(self.img, self.rect)
+        raise NotImplementedError
 
     def onEvent(self, event, data, mouseOn=None):
         if event == 'MouseEnter':
@@ -110,13 +106,65 @@ class 建筑:
     def isInside(self, pos):
         x = pos[0] - self.windowMid[0] + self.cameraPos[0] - self.x + \
                 self.rect.width // 2
-        if x not in range(self.img.get_width()):
+        if x not in range(self.useimg.get_width()):
             return False
         y = pos[1] - self.windowMid[1] + self.cameraPos[1] - self.y + \
                 self.rect.height // 2
-        if y not in range(self.img.get_height()):
+        if y not in range(self.useimg.get_height()):
             return False
-        return self.img.get_at((x, y)).a != 0
+        return self.useimg.get_at((x, y)).a != 0
+
+
+class 建筑(单位):
+
+    def __init__(self, team, position, angle):
+        单位.__init__(self, team, position)
+        self.angle = angle
+        self.img_r = pygame.transform.rotate(self.img_r, angle)
+        self.img_m = pygame.transform.rotate(self.img_m, angle)
+        self.img_s = pygame.transform.rotate(self.img_s, angle)
+        self.rect = self.img_r.get_rect()
+        self.radius = max(self.rect.size) // 2
+        self.mouseOn = False
+        self.selected = False
+
+    def draw(self, cameraPos, windowMid, surf):
+        self.cameraPos = cameraPos
+        self.windowMid = windowMid
+        cameraX, cameraY = cameraPos
+        windowMidX, windowMidY = windowMid
+        if abs(self.x - cameraX) > windowMidX + self.radius:
+            return
+        if abs(self.y - cameraY) > windowMidY + self.radius:
+            return
+        self.rect.center = (self.x - cameraX + windowMidX,
+                self.y - cameraY + windowMidY)
+        surf.blit(self.img, self.rect)
+        self.useimg = self.img
+
+
+class 英雄(单位):
+
+    def __init__(self, team, position, angle):
+        单位.__init__(self, team, position)
+        self.angle = angle
+
+    def draw(self, cameraPos, windowMid, surf):
+        self.cameraPos = cameraPos
+        self.windowMid = windowMid
+        cameraX, cameraY = cameraPos
+        windowMidX, windowMidY = windowMid
+        if abs(self.x - cameraX) > windowMidX + self.radius:
+            return
+        if abs(self.y - cameraY) > windowMidY + self.radius:
+            return
+        img = pygame.transform.rotate(self.img, self.angle)
+        rect = img.get_rect()
+        rect.center = (self.x - cameraX + windowMidX,
+                self.y - cameraY + windowMidY)
+        surf.blit(img, rect)
+        self.useimg = img
+        self.rect = rect
 
 
 class 泉水塔(建筑):
@@ -152,6 +200,11 @@ class 水晶枢纽(建筑):
         建筑.__init__(self, team, position, angle)
         self.x += 32
         self.y += 32
+
+
+class 主角(英雄):
+
+    name = '主角'
 
 
 class Layer:
@@ -194,9 +247,52 @@ class Layer:
 小兵层 = Layer(小兵_L, [])
 
 
+class Camera:
+    events = ['KeyDown', 'KeyUp']
+    order = -100
+    def __init__(self, character):
+        self.up = False
+        self.down = False
+        self.left = False
+        self.right = False
+        self.character = character
+    @property
+    def x(self):
+        return self.character.x
+    @x.setter
+    def x(self, value):
+        self.character.x = value
+    @property
+    def y(self):
+        return self.character.y
+    @y.setter
+    def y(self, value):
+        self.character.y = value
+    @property
+    def position(self):
+        return (self.character.x, self.character.y)
+    def draw(self, cameraPos, windowMid, surf):
+        pass
+    def isInside(self, pos):
+        return False
+    def onEvent(self, event, data, mouseOn=None):
+        if data.key == K_UP:
+            self.up = event == 'KeyDown'
+        elif data.key == K_DOWN:
+            self.down = event == 'KeyDown'
+        elif data.key == K_LEFT:
+            self.left = event == 'KeyDown'
+        elif data.key == K_RIGHT:
+            self.right = event == 'KeyDown'
+        else:
+            return False
+        return True
+
+
+_主角 = 主角(1, (20, 79), 45)
+camera = Camera(_主角)
 characters = [建筑层, 英雄层, 野怪层, 小兵层]
-#camera = 建筑层.units[1]
-eventCatchers = [建筑层, 英雄层, 野怪层, 小兵层]
+eventCatchers = [建筑层, 英雄层, 野怪层, 小兵层, camera]
 def init(modules, **env):
     建筑层.units.extend([
             泉水塔  (1, (14, 85), 0),
@@ -232,5 +328,29 @@ def init(modules, **env):
             内塔    (2, (77, 47), 90),
             外塔    (2, (79, 64), 90)
     ])
-start = lambda: None
-stop = lambda: None
+    英雄层.units.extend([_主角])
+
+
+def inthread(f):
+    return threading.Thread(target=f).start
+
+running = False
+
+@inthread
+def start():
+    global running
+    running = True
+    while running:
+        if camera.up:
+            camera.y -= 1
+        if camera.down:
+            camera.y += 1
+        if camera.left:
+            camera.x -= 1
+        if camera.right:
+            camera.x += 1
+        sleep(0.001)
+
+def stop():
+    global running
+    running = False

@@ -11,11 +11,11 @@ kernel.py是内核，其他所有程序文件都是包装好的单个模块。�
 （kernel对所有模块进行三轮调用，第一次是import各模块，第二次是调用各模块的init函数，此时可以进行模块间通信，第三次是调用各模块的start函数，表示游戏正式开始。当程序结束时，会调用所有模块的stop函数）
 
 ## 启动方式
-以下为加载当前所有可用模块启动的语句：
+以下为加载当前推荐模块启动的语句：
 
-kernel.py client display unit map fps escquitter cameractrl
+kernel.py client display unit map fps escquitter
 
-argv[1]也可以是server，或者简化成c或s。后面是想加载的各个模块，可以随意选择。理论上加载顺序不会影响运行效果。
+argv[1]是client或server，或者简化成c或s。后面是想加载的各个模块，可以随意选择。理论上加载顺序不会影响运行效果。
 
 ## 特别感谢
 《英雄联盟》游戏
