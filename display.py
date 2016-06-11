@@ -54,6 +54,7 @@ BLANK = _()
 WINDOWSIZE = Vector2(1280, 720)
 windowMid = WINDOWSIZE // 2
 FPS = 60
+SPF = 1 / FPS
 EVENT_TABLE = {
         MOUSEMOTION: 'MouseMotion',
         MOUSEBUTTONDOWN: 'MouseButtonDown',
@@ -95,7 +96,7 @@ class Display:
         def job(c=self.clock, display=self):
             while display.running:
                 pygame.event.pump()
-                sleep(1 / FPS)
+                sleep(SPF)
             pygame.quit()
         env['setjob'](job)
 

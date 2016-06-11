@@ -9,6 +9,7 @@
 def init(modules, **env):
     for module in modules:
         module.FPS = 8
+        module.SPF = 1 / 8
 def start():
     pass
 def stop():
