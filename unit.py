@@ -11,6 +11,10 @@ from time import sleep
 
 import pygame
 from pygame.locals import *
+from pygame.math import Vector2
+
+
+vasint = lambda v: (int(v.x), int(v.y))
 
 
 class _: events = []
@@ -43,9 +47,7 @@ class 单位:
     events = ['MouseEnter', 'MouseLeave', 'GlobalMouseButtonDown', 'MouseButtonUp']
 
     def __init__(self, team, position):
-        self.position = position
-        self.x *= 64
-        self.y *= 64
+        self.position = position * 64
         self.team = team
         self.img_r = loadimage('images/%s_r.png' % self.name)
         transparent(self.img_r)
@@ -54,19 +56,11 @@ class 单位:
         self.img_s = loadimage('images/%s_s.png' % self.name)
         transparent(self.img_s)
         self.useimg = self.img_r
-        self.radius = sum(self.img_r.get_size()) // 2
+        self.size = Vector2(self.img_r.get_size())
         self._mouseOn = False
         self._selected = False
         self.mouseOn = False
         self.selected = False
-
-    @property
-    def position(self):
-        return (self.x, self.y)
-
-    @position.setter
-    def position(self, value):
-        self.x, self.y = value
 
     @property
     def mouseOn(self):
@@ -104,15 +98,13 @@ class 单位:
             self.selected = True
 
     def isInside(self, pos):
-        x = pos[0] - self.windowMid[0] + self.cameraPos[0] - self.x + \
-                self.rect.width // 2
-        if x not in range(self.useimg.get_width()):
+        pos = Vector2(pos)
+        pos += self.cameraPos - self.windowMid - self.position - self.size // 2
+        if not pos.elementwise() >= 0:
             return False
-        y = pos[1] - self.windowMid[1] + self.cameraPos[1] - self.y + \
-                self.rect.height // 2
-        if y not in range(self.useimg.get_height()):
+        if not pos.elementwise() < self.useimg.get_size():
             return False
-        return self.useimg.get_at((x, y)).a != 0
+        return self.useimg.get_at(vasint(pos)).a != 0
 
 
 class 建筑(单位):
@@ -124,21 +116,11 @@ class 建筑(单位):
         self.img_m = pygame.transform.rotate(self.img_m, angle)
         self.img_s = pygame.transform.rotate(self.img_s, angle)
         self.rect = self.img_r.get_rect()
-        self.radius = max(self.rect.size) // 2
-        self.mouseOn = False
-        self.selected = False
 
     def draw(self, cameraPos, windowMid, surf):
         self.cameraPos = cameraPos
         self.windowMid = windowMid
-        cameraX, cameraY = cameraPos
-        windowMidX, windowMidY = windowMid
-        if abs(self.x - cameraX) > windowMidX + self.radius:
-            return
-        if abs(self.y - cameraY) > windowMidY + self.radius:
-            return
-        self.rect.center = (self.x - cameraX + windowMidX,
-                self.y - cameraY + windowMidY)
+        self.rect.center = vasint(self.position - cameraPos + windowMid)
         surf.blit(self.img, self.rect)
         self.useimg = self.img
 
@@ -152,16 +134,9 @@ class 英雄(单位):
     def draw(self, cameraPos, windowMid, surf):
         self.cameraPos = cameraPos
         self.windowMid = windowMid
-        cameraX, cameraY = cameraPos
-        windowMidX, windowMidY = windowMid
-        if abs(self.x - cameraX) > windowMidX + self.radius:
-            return
-        if abs(self.y - cameraY) > windowMidY + self.radius:
-            return
         img = pygame.transform.rotate(self.img, self.angle)
         rect = img.get_rect()
-        rect.center = (self.x - cameraX + windowMidX,
-                self.y - cameraY + windowMidY)
+        rect.center = vasint(self.position - cameraPos + windowMid)
         surf.blit(img, rect)
         self.useimg = img
         self.rect = rect
@@ -198,8 +173,7 @@ class 水晶枢纽(建筑):
 
     def __init__(self, team, position, angle):
         建筑.__init__(self, team, position, angle)
-        self.x += 32
-        self.y += 32
+        self.position += (32, 32)
 
 
 class 主角(英雄):
@@ -257,20 +231,11 @@ class Camera:
         self.right = False
         self.character = character
     @property
-    def x(self):
-        return self.character.x
-    @x.setter
-    def x(self, value):
-        self.character.x = value
-    @property
-    def y(self):
-        return self.character.y
-    @y.setter
-    def y(self, value):
-        self.character.y = value
-    @property
     def position(self):
-        return (self.character.x, self.character.y)
+        return self.character.position
+    @position.setter
+    def position(self, value):
+        self.character.position = value
     def draw(self, cameraPos, windowMid, surf):
         pass
     def isInside(self, pos):
@@ -289,44 +254,44 @@ class Camera:
         return True
 
 
-_主角 = 主角(1, (20, 79), 45)
+_主角 = 主角(1, Vector2(20, 79), 45)
 camera = Camera(_主角)
 characters = [建筑层, 英雄层, 野怪层, 小兵层]
 eventCatchers = [建筑层, 英雄层, 野怪层, 小兵层, camera]
 def init(modules, **env):
     建筑层.units.extend([
-            泉水塔  (1, (14, 85), 0),
-            水晶枢纽(1, (22, 76), 0),
-            门牙塔  (1, (23, 74), 0),
-            门牙塔  (1, (25, 76), 0),
-            #水晶    (1, (21, 68), 270),
-            #水晶    (1, (30, 69), 315),
-            #水晶    (1, (31, 78), 0),
-            高地塔  (1, (21, 64), 270),
-            内塔    (1, (22, 52), 270),
-            外塔    (1, (20, 35), 270),
-            高地塔  (1, (33, 66), 315),
-            内塔    (1, (38, 62), 315),
-            外塔    (1, (42, 56), 315),
-            高地塔  (1, (35, 78), 0),
-            内塔    (1, (47, 77), 0),
-            外塔    (1, (64, 79), 0),
-            泉水塔  (2, (85, 14), 180),
-            水晶枢纽(2, (76, 22), 180),
-            门牙塔  (2, (74, 23), 180),
-            门牙塔  (2, (76, 25), 180),
-            #水晶    (2, (68, 21), 180),
-            #水晶    (2, (69, 30), 135),
-            #水晶    (2, (78, 31), 90),
-            高地塔  (2, (64, 21), 180),
-            内塔    (2, (52, 22), 180),
-            外塔    (2, (35, 20), 180),
-            高地塔  (2, (66, 33), 135),
-            内塔    (2, (62, 38), 135),
-            外塔    (2, (56, 42), 135),
-            高地塔  (2, (78, 35), 90),
-            内塔    (2, (77, 47), 90),
-            外塔    (2, (79, 64), 90)
+            泉水塔  (1, Vector2(14, 85), 0),
+            水晶枢纽(1, Vector2(22, 76), 0),
+            门牙塔  (1, Vector2(23, 74), 0),
+            门牙塔  (1, Vector2(25, 76), 0),
+            #水晶    (1, Vector2(21, 68), 270),
+            #水晶    (1, Vector2(30, 69), 315),
+            #水晶    (1, Vector2(31, 78), 0),
+            高地塔  (1, Vector2(21, 64), 270),
+            内塔    (1, Vector2(22, 52), 270),
+            外塔    (1, Vector2(20, 35), 270),
+            高地塔  (1, Vector2(33, 66), 315),
+            内塔    (1, Vector2(38, 62), 315),
+            外塔    (1, Vector2(42, 56), 315),
+            高地塔  (1, Vector2(35, 78), 0),
+            内塔    (1, Vector2(47, 77), 0),
+            外塔    (1, Vector2(64, 79), 0),
+            泉水塔  (2, Vector2(85, 14), 180),
+            水晶枢纽(2, Vector2(76, 22), 180),
+            门牙塔  (2, Vector2(74, 23), 180),
+            门牙塔  (2, Vector2(76, 25), 180),
+            #水晶    (2, Vector2(68, 21), 180),
+            #水晶    (2, Vector2(69, 30), 135),
+            #水晶    (2, Vector2(78, 31), 90),
+            高地塔  (2, Vector2(64, 21), 180),
+            内塔    (2, Vector2(52, 22), 180),
+            外塔    (2, Vector2(35, 20), 180),
+            高地塔  (2, Vector2(66, 33), 135),
+            内塔    (2, Vector2(62, 38), 135),
+            外塔    (2, Vector2(56, 42), 135),
+            高地塔  (2, Vector2(78, 35), 90),
+            内塔    (2, Vector2(77, 47), 90),
+            外塔    (2, Vector2(79, 64), 90)
     ])
     英雄层.units.extend([_主角])
 
@@ -342,14 +307,14 @@ def start():
     running = True
     while running:
         if camera.up:
-            camera.y -= 1
+            camera.position.y -= 10
         if camera.down:
-            camera.y += 1
+            camera.position.y += 10
         if camera.left:
-            camera.x -= 1
+            camera.position.x -= 10
         if camera.right:
-            camera.x += 1
-        sleep(0.001)
+            camera.position.x += 10
+        sleep(0.01)
 
 def stop():
     global running

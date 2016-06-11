@@ -8,6 +8,10 @@
 
 import pygame
 from pygame.locals import *
+from pygame.math import Vector2
+
+
+vasint = lambda v: (int(v.x), int(v.y))
 
 
 地图_L = 100
@@ -54,23 +58,19 @@ class Map:
         self.targetimg = pygame.image.load('images/target.png')
         transparent(self.targetimg)
         self.targetimgrect = self.targetimg.get_rect()
-        self.target = (0, 0)
+        self.target = Vector2(0, 0)
 
     def draw(self, cameraPos, windowMid, surf):
-        self.cameraX, self.cameraY = cameraPos
-        left = cameraPos[0] - windowMid[0]
-        right = cameraPos[0] + windowMid[0]
-        top = cameraPos[1] - windowMid[1]
-        bottom = cameraPos[1] + windowMid[1]
-        l = -(left % 64)
-        t = -(top % 64)
-        for x in range(left // 64, right // 64 + 2):
-            for y in range(top // 64, bottom // 64 + 2):
-                m_rect.center = (l + (x-left//64) * 64, t + (y-top//64) * 64)
+        self.cameraPos = cameraPos
+        lefttop = cameraPos - windowMid
+        rightbottom = cameraPos + windowMid
+        lt = -(lefttop.elementwise() % 64)
+        for x in range(int(lefttop.x) // 64, int(rightbottom.x) // 64 + 2):
+            for y in range(int(lefttop.y) // 64, int(rightbottom.y) // 64 + 2):
+                m_rect.center = vasint(lt + (Vector2(x, y) - lefttop//64) * 64)
                 c = self.design.get_at((x, y))
                 surf.blit(MATERIALS[(c.r, c.g, c.b)], m_rect)
-        self.targetimgrect.center = (self.target[0] - cameraPos[0],
-                self.target[1] - cameraPos[1])
+        self.targetimgrect.center = vasint(self.target - cameraPos)
         surf.blit(self.targetimg, self.targetimgrect)
 
     def isInside(self, pos):
@@ -80,10 +80,9 @@ class Map:
         if event == 'GlobalMouseButtonDown':
             if mouseOn == self:
                 return
-            self.target = (0, 0)
+            self.target = Vector2(0, 0)
             return
-        self.target = (data.pos[0] + self.cameraX,
-                data.pos[1] + self.cameraY)
+        self.target = Vector2(data.pos) + self.cameraPos
 
 
 map = Map()

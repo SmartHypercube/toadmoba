@@ -37,6 +37,10 @@ from time import sleep
 
 import pygame
 from pygame.locals import *
+from pygame.math import Vector2
+
+
+vasint = lambda v: (int(v.x), int(v.y))
 
 
 def inthread(f):
@@ -47,8 +51,8 @@ class _:
     events = []
     order = 1000
 BLANK = _()
-WINDOWSIZE = (1280, 720)
-windowMid = (WINDOWSIZE[0] // 2, WINDOWSIZE[1] // 2)
+WINDOWSIZE = Vector2(1280, 720)
+windowMid = WINDOWSIZE // 2
 FPS = 60
 EVENT_TABLE = {
         MOUSEMOTION: 'MouseMotion',
@@ -66,11 +70,11 @@ class Display:
 
     def __init__(self):
         pygame.init()
-        self.displaySurf = pygame.display.set_mode(WINDOWSIZE, FULLSCREEN, 32)
+        self.displaySurf = pygame.display.set_mode(vasint(WINDOWSIZE), FULLSCREEN, 32)
         self.clock = pygame.time.Clock()
         pygame.display.set_caption('League of Toads')
         self.characters = []
-        class _: position = (0, 0)
+        class _: position = Vector2(0, 0)
         self.camera = _()
         self.eventCatchers = []
         self.running = False
@@ -91,6 +95,7 @@ class Display:
         def job(c=self.clock, display=self):
             while display.running:
                 pygame.event.pump()
+                sleep(1 / FPS)
             pygame.quit()
         env['setjob'](job)
 
