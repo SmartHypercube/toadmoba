@@ -99,7 +99,7 @@ class 单位:
 
     def isInside(self, pos):
         pos = Vector2(pos)
-        pos += self.cameraPos - self.windowMid - self.position - self.size // 2
+        pos += self.cameraPos - self.windowMid - self.position + self.size // 2
         if not pos.elementwise() >= 0:
             return False
         if not pos.elementwise() < self.useimg.get_size():
@@ -232,7 +232,7 @@ class Camera:
         self.character = character
     @property
     def position(self):
-        return self.character.position
+        return Vector2(self.character.position)
     @position.setter
     def position(self, value):
         self.character.position = value
@@ -307,13 +307,13 @@ def start():
     running = True
     while running:
         if camera.up:
-            camera.position.y -= 10
+            camera.position += (0, -10)
         if camera.down:
-            camera.position.y += 10
+            camera.position += (0, 10)
         if camera.left:
-            camera.position.x -= 10
+            camera.position += (-10, 0)
         if camera.right:
-            camera.position.x += 10
+            camera.position += (10, 0)
         sleep(0.01)
 
 def stop():
