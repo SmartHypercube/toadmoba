@@ -52,7 +52,7 @@ class Map:
     def __init__(self):
         self.order = 地图_L
         self.design = pygame.image.load('images/mapdesign.png')
-        material = pygame.image.load('images/mud_rock_stone_grass_water.png')
+        material = pygame.image.load('images/mud_rock_stone_grass_water.png').convert()
         for m in MATERIALS:
             MATERIALS[m] = material.subsurface(Rect(MATERIALS[m]))
         self.targetimg = pygame.image.load('images/target.png')
