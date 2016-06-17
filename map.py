@@ -62,6 +62,7 @@ class Map:
 
     def draw(self, cameraPos, windowMid, surf):
         self.cameraPos = cameraPos
+        self.windowMid = windowMid
         lefttop = cameraPos - windowMid
         rightbottom = cameraPos + windowMid
         lt = -(lefttop.elementwise() % 64)
@@ -83,6 +84,12 @@ class Map:
             self.target = Vector2(0, 0)
             return
         self.target = Vector2(data.pos) + self.cameraPos
+
+    def mouseOnType(self, player):
+        return 'moveto'
+
+    def mouseOnPos(self):
+        return self.target - self.windowMid
 
 
 map = Map()

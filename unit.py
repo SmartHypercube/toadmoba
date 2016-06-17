@@ -116,6 +116,8 @@ class 建筑(单位):
         self.img_m = pygame.transform.rotate(self.img_m, angle)
         self.img_s = pygame.transform.rotate(self.img_s, angle)
         self.rect = self.img_r.get_rect()
+        self.mouseOn = False
+        self.selected = False
 
     def draw(self, cameraPos, windowMid, surf):
         self.cameraPos = cameraPos
@@ -123,6 +125,7 @@ class 建筑(单位):
         self.rect.center = vasint(self.position - cameraPos + windowMid)
         surf.blit(self.img, self.rect)
         self.useimg = self.img
+        self.size = Vector2(self.img.get_size())
 
 
 class 英雄(单位):
@@ -130,6 +133,8 @@ class 英雄(单位):
     def __init__(self, team, position, angle):
         单位.__init__(self, team, position)
         self.angle = angle
+        self.mouseOn = False
+        self.selected = False
 
     def draw(self, cameraPos, windowMid, surf):
         self.cameraPos = cameraPos
@@ -139,6 +144,7 @@ class 英雄(单位):
         rect.center = vasint(self.position - cameraPos + windowMid)
         surf.blit(img, rect)
         self.useimg = img
+        self.size = Vector2(img.get_size())
         self.rect = rect
 
 
@@ -212,6 +218,10 @@ class Layer:
                 if event in unit.events:
                     unit.onEvent(event, data, mouseOn)
 
+    def mouseOnType(self, player):
+        return ''
+
+
 建筑层 = Layer(建筑_L, [])
 
 英雄层 = Layer(英雄_L, [])
@@ -221,43 +231,10 @@ class Layer:
 小兵层 = Layer(小兵_L, [])
 
 
-class Camera:
-    events = ['KeyDown', 'KeyUp']
-    order = -100
-    def __init__(self, character):
-        self.up = False
-        self.down = False
-        self.left = False
-        self.right = False
-        self.character = character
-    @property
-    def position(self):
-        return Vector2(self.character.position)
-    @position.setter
-    def position(self, value):
-        self.character.position = value
-    def draw(self, cameraPos, windowMid, surf):
-        pass
-    def isInside(self, pos):
-        return False
-    def onEvent(self, event, data, mouseOn=None):
-        if data.key == K_UP:
-            self.up = event == 'KeyDown'
-        elif data.key == K_DOWN:
-            self.down = event == 'KeyDown'
-        elif data.key == K_LEFT:
-            self.left = event == 'KeyDown'
-        elif data.key == K_RIGHT:
-            self.right = event == 'KeyDown'
-        else:
-            return False
-        return True
-
-
 _主角 = 主角(1, Vector2(20, 79), 45)
-camera = Camera(_主角)
 characters = [建筑层, 英雄层, 野怪层, 小兵层]
-eventCatchers = [建筑层, 英雄层, 野怪层, 小兵层, camera]
+eventCatchers = [建筑层, 英雄层, 野怪层, 小兵层]
+main_character = _主角
 def init(modules, **env):
     建筑层.units.extend([
             泉水塔  (1, Vector2(14, 85), 0),
@@ -296,26 +273,8 @@ def init(modules, **env):
     英雄层.units.extend([_主角])
 
 
-def inthread(f):
-    return threading.Thread(target=f).start
-
-running = False
-
-@inthread
 def start():
-    global running
-    running = True
-    while running:
-        if camera.up:
-            camera.position += (0, -10)
-        if camera.down:
-            camera.position += (0, 10)
-        if camera.left:
-            camera.position += (-10, 0)
-        if camera.right:
-            camera.position += (10, 0)
-        sleep(0.01)
+    pass
 
 def stop():
-    global running
-    running = False
+    pass
