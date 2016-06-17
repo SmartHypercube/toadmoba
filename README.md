@@ -6,14 +6,14 @@
 
 kernel.py是内核，其他所有程序文件都是包装好的单个模块。内核和各模块开头处都已经详细记录了接口。
 
-建议开发者至少阅读kernel与display的接口描述（后者主管pygame，因此接口较为复杂，是一个主要模块。
+建议开发者至少阅读kernel与display的接口描述（后者主管pygame，因此接口较为复杂，是一个主要模块。）
 
 （kernel对所有模块进行三轮调用，第一次是import各模块，第二次是调用各模块的init函数，此时可以进行模块间通信，第三次是调用各模块的start函数，表示游戏正式开始。当程序结束时，会调用所有模块的stop函数）
 
 ## 启动方式
 以下为加载当前推荐模块启动的语句：
 
-kernel.py client display unit map fps escquitter
+kernel.py client display unit map smallmap fps escquitter control
 
 argv[1]是client或server，或者简化成c或s。后面是想加载的各个模块，可以随意选择。理论上加载顺序不会影响运行效果。
 
